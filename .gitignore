@@ -1,0 +1,5 @@
+docs/_site
+build
+*.ply
+*.drc
+*.obj
