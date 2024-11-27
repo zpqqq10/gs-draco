@@ -53,6 +53,14 @@ class GeometryAttribute {
     NORMAL,
     COLOR,
     TEX_COORD,
+    // for gaussian support
+    SH_DC,   // direct current of spherical harmonics coefficients
+    SH_REST,   // high order spherical harmonics coefficients
+    OPACITY, // opacity
+    SCALE, // scale
+    ROTATION, // rotation
+    AUX, // auxillary data, feature vector, varied length, 2/4/8..., used for mlp
+    INST_LABEL, // 0/1 
     // A special id used to mark attributes that are not assigned to any known
     // predefined use case. Such attributes are often used for a shader specific
     // data.
@@ -243,6 +251,20 @@ class GeometryAttribute {
         return "COLOR";
       case TEX_COORD:
         return "TEX_COORD";
+      case SH_DC:
+        return "SH_DC";
+      case SH_REST:
+        return "SH_REST";
+      case OPACITY:
+        return "OPACITY";
+      case SCALE:
+        return "SCALE";
+      case ROTATION:
+        return "ROTATION";
+      case AUX:
+        return "AUX";
+      case INST_LABEL:
+        return "INST_LABEL";
       case GENERIC:
         return "GENERIC";
 #ifdef DRACO_TRANSCODER_SUPPORTED

@@ -105,7 +105,9 @@ class PlyElement {
 
  private:
   std::string name_;
+  // how many members of a single elements in total, like vertex
   int64_t num_entries_;
+  // how many properties
   std::vector<PlyProperty> properties_;
   std::map<std::string, int> property_index_;
 };

@@ -188,6 +188,7 @@ bool PlyReader::ParsePropertiesData(DecoderBuffer *buffer) {
 bool PlyReader::ParseElementData(DecoderBuffer *buffer, int element_index) {
   PlyElement &element = elements_[element_index];
   for (int entry = 0; entry < element.num_entries(); ++entry) {
+    // read all properties of one element
     for (int i = 0; i < element.num_properties(); ++i) {
       PlyProperty &prop = element.property(i);
       if (prop.is_list()) {

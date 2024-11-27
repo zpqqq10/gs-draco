@@ -36,6 +36,9 @@ struct Options {
   bool normals_deleted;
   int generic_quantization_bits;
   bool generic_deleted;
+  // for 3dgs/2dgs
+  int gaussian_quantization_bits;
+  bool gaussian_deleted;
   int compression_level;
   bool preserve_polygons;
   bool use_metadata;
@@ -52,6 +55,8 @@ Options::Options()
       normals_deleted(false),
       generic_quantization_bits(8),
       generic_deleted(false),
+      gaussian_quantization_bits(10),
+      gaussian_deleted(false),
       compression_level(7),
       preserve_polygons(false),
       use_metadata(false) {}
@@ -78,6 +83,9 @@ void Usage() {
   printf(
       "  -qg <value>           quantization bits for any generic attribute, "
       "default=8.\n");
+  printf(
+      "  -qgs <value>          quantization bits for gaussian attribute, "
+      "default=10.\n");
   printf(
       "  -cl <value>           compression level [0-10], most=10, least=0, "
       "default=7.\n");
@@ -131,6 +139,83 @@ void PrintOptions(const draco::PointCloud &pc, const Options &options) {
     }
   } else if (options.normals_deleted) {
     printf("  Normals: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::SH_DC) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  SH DCs: No quantization\n");
+    } else {
+      printf("  SH DCs: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  SH DCs: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::SH_REST) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  SH rests: No quantization\n");
+    } else {
+      printf("  SH rests: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  SH rests: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::OPACITY) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  Opacities: No quantization\n");
+    } else {
+      printf("  Opacities: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  Opacities: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::SCALE) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  Scales: No quantization\n");
+    } else {
+      printf("  Scales: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  Scales: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::ROTATION) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  Rotations: No quantization\n");
+    } else {
+      printf("  Rotations: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  Rotations: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::AUX) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  Auxiliaries: No quantization\n");
+    } else {
+      printf("  Auxiliaries: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  Auxiliaries: Skipped\n");
+  }
+
+  if (pc.GetNamedAttributeId(draco::GeometryAttribute::INST_LABEL) >= 0) {
+    if (options.gaussian_quantization_bits == 0) {
+      printf("  Labels: No quantization\n");
+    } else {
+      printf("  Labels: Quantization = %d bits\n",
+             options.gaussian_quantization_bits);
+    }
+  } else if (options.gaussian_deleted) {
+    printf("  Labels: Skipped\n");
   }
 
   if (pc.GetNamedAttributeId(draco::GeometryAttribute::GENERIC) >= 0) {
@@ -234,6 +319,14 @@ int main(int argc, char **argv) {
             "attribute is 30.\n");
         return -1;
       }
+    } else if (!strcmp("-qgs", argv[i]) && i < argc_check) {
+      options.normals_quantization_bits = StringToInt(argv[++i]);
+      if (options.normals_quantization_bits > 30) {
+        printf(
+            "Error: The maximum number of quantization bits for the gaussian "
+            "attribute is 30.\n");
+        return -1;
+      }
     } else if (!strcmp("-qg", argv[i]) && i < argc_check) {
       options.generic_quantization_bits = StringToInt(argv[++i]);
       if (options.generic_quantization_bits > 30) {
@@ -257,6 +350,7 @@ int main(int argc, char **argv) {
       }
       ++i;
     } else if (!strcmp("--metadata", argv[i])) {
+      // only used for obj extension in obj_decoder
       options.use_metadata = true;
     } else if (!strcmp("-preserve_polygons", argv[i])) {
       options.preserve_polygons = true;
@@ -326,6 +420,57 @@ int main(int argc, char **argv) {
           pc->GetNamedAttributeId(draco::GeometryAttribute::GENERIC, 0));
     }
   }
+  if (options.gaussian_quantization_bits < 0) {
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::SH_DC) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::SH_DC) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::SH_DC, 0));
+    }
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::SH_REST) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::SH_REST) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::SH_REST, 0));
+    }
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::OPACITY) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::OPACITY) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::OPACITY, 0));
+    }
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::SCALE) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::SCALE) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::SCALE, 0));
+    }
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::ROTATION) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::ROTATION) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::ROTATION, 0));
+    }
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::AUX) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::AUX) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::AUX, 0));
+    }
+    if (pc->NumNamedAttributes(draco::GeometryAttribute::INST_LABEL) > 0) {
+      options.gaussian_deleted = true;
+    }
+    while (pc->NumNamedAttributes(draco::GeometryAttribute::INST_LABEL) > 0) {
+      pc->DeleteAttribute(
+          pc->GetNamedAttributeId(draco::GeometryAttribute::INST_LABEL, 0));
+    }
+  }
 #ifdef DRACO_ATTRIBUTE_INDICES_DEDUPLICATION_SUPPORTED
   // If any attribute has been deleted, run deduplication of point indices again
   // as some points can be possibly combined.
@@ -336,8 +481,11 @@ int main(int argc, char **argv) {
 #endif
 
   // Convert compression level to speed (that 0 = slowest, 10 = fastest).
+  // if speed == 10, sequential encoding is used
   const int speed = 10 - options.compression_level;
 
+  // compression/encode.cc
+  // options are set with config/encoder_options.h
   draco::Encoder encoder;
 
   // Setup encoder options.
@@ -357,6 +505,22 @@ int main(int argc, char **argv) {
     encoder.SetAttributeQuantization(draco::GeometryAttribute::GENERIC,
                                      options.generic_quantization_bits);
   }
+  if (options.gaussian_quantization_bits > 0) {
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::SH_DC,
+                                     options.gaussian_quantization_bits);
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::SH_REST,
+                                     options.gaussian_quantization_bits);
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::OPACITY,
+                                     options.gaussian_quantization_bits);
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::SCALE,
+                                     options.gaussian_quantization_bits);
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::ROTATION,
+                                     options.gaussian_quantization_bits);
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::AUX,
+                                     options.gaussian_quantization_bits);
+    encoder.SetAttributeQuantization(draco::GeometryAttribute::INST_LABEL,
+                                     options.gaussian_quantization_bits);
+  }
   encoder.SetSpeedOptions(speed, speed);
 
   if (options.output.empty()) {
@@ -366,15 +530,18 @@ int main(int argc, char **argv) {
 
   PrintOptions(*pc, options);
 
+  // no face in point cloud
   const bool input_is_mesh = mesh && mesh->num_faces() > 0;
 
   // Convert to ExpertEncoder that allows us to set per-attribute options.
+  // src/draco/compression/expert_encode.h
   std::unique_ptr<draco::ExpertEncoder> expert_encoder;
   if (input_is_mesh) {
     expert_encoder.reset(new draco::ExpertEncoder(*mesh));
   } else {
     expert_encoder.reset(new draco::ExpertEncoder(*pc));
   }
+  // create option settings from the previous processed options
   expert_encoder->Reset(encoder.CreateExpertEncoderOptions(*pc));
 
   // Check if there is an attribute that stores polygon edges. If so, we disable
