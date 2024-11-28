@@ -77,6 +77,20 @@ bool PlyEncoder::EncodeInternal() {
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::TEX_COORD);
   const int color_att_id =
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::COLOR);
+  const int sh_dc_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SH_DC);
+  const int sh_rest_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SH_REST);
+  const int opacity_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::OPACITY);
+  const int scale_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SCALE);
+  const int rotation_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::ROTATION);
+  const int aux_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::AUX);
+  const int inst_label_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::INST_LABEL);
 
   if (pos_att_id < 0) {
     return false;
@@ -125,6 +139,66 @@ bool PlyEncoder::EncodeInternal() {
           << std::endl;
     }
   }
+  // spherical harmonics
+  if (sh_dc_att_id >= 0) {
+    out << "property " << GetAttributeDataType(sh_dc_att_id) << " f_dc_0"
+        << std::endl;
+    out << "property " << GetAttributeDataType(sh_dc_att_id) << " f_dc_1"
+        << std::endl;
+    out << "property " << GetAttributeDataType(sh_dc_att_id) << " f_dc_2"
+        << std::endl;
+  }
+  if (sh_rest_att_id >= 0) {
+    auto sh_rest_dims =
+        in_point_cloud_->attribute(sh_rest_att_id)->num_components();
+    for (int i = 0; i < sh_rest_dims; ++i) {
+      out << "property " << GetAttributeDataType(sh_rest_att_id) << " f_rest_"
+          << i << std::endl;
+    }
+  }
+  // opacity
+  if (opacity_att_id >= 0) {
+    out << "property " << GetAttributeDataType(opacity_att_id) << " opacity"
+        << std::endl;
+  }
+  // scale, may be 2d or 3d
+  if (scale_att_id >= 0) {
+    out << "property " << GetAttributeDataType(scale_att_id) << " scale_0"
+        << std::endl;
+    out << "property " << GetAttributeDataType(scale_att_id) << " scale_1"
+        << std::endl;
+    // 3rd scale component is optional
+    // 2d/3d gs
+    if (in_point_cloud_->attribute(scale_att_id)->num_components() > 2) {
+      out << "property " << GetAttributeDataType(scale_att_id) << " scale_2"
+          << std::endl;
+    }
+  }
+  // rotation, quaternion
+  if (rotation_att_id >= 0) {
+    out << "property " << GetAttributeDataType(rotation_att_id) << " rot_0"
+        << std::endl;
+    out << "property " << GetAttributeDataType(rotation_att_id) << " rot_1"
+        << std::endl;
+    out << "property " << GetAttributeDataType(rotation_att_id) << " rot_2"
+        << std::endl;
+    out << "property " << GetAttributeDataType(rotation_att_id) << " rot_3"
+        << std::endl;
+  }
+  // auxiliary data
+  if (aux_att_id >= 0) {
+    auto aux_dims = in_point_cloud_->attribute(aux_att_id)->num_components();
+    for (int i = 0; i < aux_dims; ++i) {
+      out << "property " << GetAttributeDataType(aux_att_id) << " f_aux_" << i
+          << std::endl;
+    }
+  }
+  // inst label
+  if (inst_label_att_id >= 0) {
+    out << "property " << GetAttributeDataType(inst_label_att_id)
+        << " inst_label" << std::endl;
+  }
+
   if (in_mesh_) {
     out << "element face " << in_mesh_->num_faces() << std::endl;
     out << "property list uchar int vertex_indices" << std::endl;
@@ -157,6 +231,45 @@ bool PlyEncoder::EncodeInternal() {
       const auto *const color_att = in_point_cloud_->attribute(color_att_id);
       buffer()->Encode(color_att->GetAddress(color_att->mapped_index(v)),
                        color_att->byte_stride());
+    }
+    if (sh_dc_att_id >= 0) {
+      const auto *const sh_dc_att = in_point_cloud_->attribute(sh_dc_att_id);
+      buffer()->Encode(sh_dc_att->GetAddress(sh_dc_att->mapped_index(v)),
+                       sh_dc_att->byte_stride());
+    }
+    if (sh_rest_att_id >= 0) {
+      const auto *const sh_rest_att =
+          in_point_cloud_->attribute(sh_rest_att_id);
+      buffer()->Encode(sh_rest_att->GetAddress(sh_rest_att->mapped_index(v)),
+                       sh_rest_att->byte_stride());
+    }
+    if (opacity_att_id >= 0) {
+      const auto *const opacity_att =
+          in_point_cloud_->attribute(opacity_att_id);
+      buffer()->Encode(opacity_att->GetAddress(opacity_att->mapped_index(v)),
+                       opacity_att->byte_stride());
+    }
+    if (scale_att_id >= 0) {
+      const auto *const scale_att = in_point_cloud_->attribute(scale_att_id);
+      buffer()->Encode(scale_att->GetAddress(scale_att->mapped_index(v)),
+                       scale_att->byte_stride());
+    }
+    if (rotation_att_id >= 0) {
+      const auto *const rotation_att =
+          in_point_cloud_->attribute(rotation_att_id);
+      buffer()->Encode(rotation_att->GetAddress(rotation_att->mapped_index(v)),
+                       rotation_att->byte_stride());
+    }
+    if (aux_att_id >= 0) {
+      const auto *const aux_att = in_point_cloud_->attribute(aux_att_id);
+      buffer()->Encode(aux_att->GetAddress(aux_att->mapped_index(v)),
+                       aux_att->byte_stride());
+    }
+    if (inst_label_att_id >= 0) {
+      const auto *const inst_label_att =
+          in_point_cloud_->attribute(inst_label_att_id);
+      buffer()->Encode(inst_label_att->GetAddress(inst_label_att->mapped_index(v)),
+                       inst_label_att->byte_stride());
     }
   }
 

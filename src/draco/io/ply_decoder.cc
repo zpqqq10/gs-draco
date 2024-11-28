@@ -434,7 +434,7 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       }
       PlyPropertyReader<float> opacity_reader(opacity_prop);
       GeometryAttribute va;
-      va.Init(GeometryAttribute::OPACITY, nullptr, 1, DT_FLOAT32, true,
+      va.Init(GeometryAttribute::OPACITY, nullptr, 1, DT_FLOAT32, false,
               sizeof(float), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
@@ -493,7 +493,7 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       }
 
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SCALE, nullptr, num_scales, DT_FLOAT32, true,
+      va.Init(GeometryAttribute::SCALE, nullptr, num_scales, DT_FLOAT32, false,
               sizeof(float) * num_scales, 0);
       const int32_t att_id =
           out_point_cloud_->AddAttribute(va, true, num_vertices);
@@ -599,8 +599,8 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
             new PlyPropertyReader<float>(aux_props[i])));
       }
       GeometryAttribute va;
-      va.Init(GeometryAttribute::AUX, nullptr, num_aux, DT_FLOAT32,
-              false, sizeof(float) * num_aux, 0);
+      va.Init(GeometryAttribute::AUX, nullptr, num_aux, DT_FLOAT32, false,
+              sizeof(float) * num_aux, 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
         std::vector<float> val(num_aux);
@@ -625,7 +625,7 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       }
       PlyPropertyReader<float> label_reader(label_prop);
       GeometryAttribute va;
-      va.Init(GeometryAttribute::INST_LABEL, nullptr, 1, DT_FLOAT32, true,
+      va.Init(GeometryAttribute::INST_LABEL, nullptr, 1, DT_FLOAT32, false,
               sizeof(float), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
