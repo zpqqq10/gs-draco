@@ -320,8 +320,8 @@ int main(int argc, char **argv) {
         return -1;
       }
     } else if (!strcmp("-qgs", argv[i]) && i < argc_check) {
-      options.normals_quantization_bits = StringToInt(argv[++i]);
-      if (options.normals_quantization_bits > 30) {
+      options.gaussian_quantization_bits = StringToInt(argv[++i]);
+      if (options.gaussian_quantization_bits > 30) {
         printf(
             "Error: The maximum number of quantization bits for the gaussian "
             "attribute is 30.\n");

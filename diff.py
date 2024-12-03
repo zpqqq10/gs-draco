@@ -17,7 +17,9 @@ def difference(ref, res):
     for key in res.keys():
         # draco may change the order of the points
         # so we need to sort the array
-        diff = np.abs(np.sort(ref[key]) - np.sort(res[key]))
+        # but if cl is set to 0, sequential encoding is used and the order is kept
+        diff = np.abs(ref[key] - res[key])
+        # diff = np.abs(np.sort(ref[key]) - np.sort(res[key]))
         print(key)
         print(diff.max(), diff.min())
         print(ref[key].max(), res[key].max(), ref[key].min(), res[key].min())
