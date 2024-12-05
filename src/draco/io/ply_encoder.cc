@@ -89,8 +89,6 @@ bool PlyEncoder::EncodeInternal() {
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::ROTATION);
   const int aux_att_id =
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::AUX);
-  const int inst_label_att_id =
-      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::INST_LABEL);
 
   if (pos_att_id < 0) {
     return false;
@@ -187,16 +185,8 @@ bool PlyEncoder::EncodeInternal() {
   }
   // auxiliary data
   if (aux_att_id >= 0) {
-    auto aux_dims = in_point_cloud_->attribute(aux_att_id)->num_components();
-    for (int i = 0; i < aux_dims; ++i) {
-      out << "property " << GetAttributeDataType(aux_att_id) << " f_aux_" << i
-          << std::endl;
-    }
-  }
-  // inst label
-  if (inst_label_att_id >= 0) {
-    out << "property " << GetAttributeDataType(inst_label_att_id)
-        << " inst_label" << std::endl;
+    out << "property " << GetAttributeDataType(rotation_att_id) << " segment"
+        << std::endl;
   }
 
   if (in_mesh_) {
@@ -264,12 +254,6 @@ bool PlyEncoder::EncodeInternal() {
       const auto *const aux_att = in_point_cloud_->attribute(aux_att_id);
       buffer()->Encode(aux_att->GetAddress(aux_att->mapped_index(v)),
                        aux_att->byte_stride());
-    }
-    if (inst_label_att_id >= 0) {
-      const auto *const inst_label_att =
-          in_point_cloud_->attribute(inst_label_att_id);
-      buffer()->Encode(inst_label_att->GetAddress(inst_label_att->mapped_index(v)),
-                       inst_label_att->byte_stride());
     }
   }
 

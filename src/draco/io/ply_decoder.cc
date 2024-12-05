@@ -570,71 +570,70 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
   /********************* auxiliary data  **********************/
   {
     // TODO 0-1?
-    int num_aux = 0;
-    int MAXIMUM_FEAT_DIM = 16;
-    const PlyProperty *aux_props[MAXIMUM_FEAT_DIM];
-    for (num_aux = 0; num_aux < MAXIMUM_FEAT_DIM; num_aux++) {
-      const std::string aux_name = "f_aux_" + std::to_string(num_aux);
-      aux_props[num_aux] = vertex_element->GetPropertyByName(aux_name);
-      if (aux_props[num_aux] == nullptr) {
-        break;
-      }
-    }
-    if (num_aux == MAXIMUM_FEAT_DIM) {
-      printf("Support %d feature dim for auxiliary data at most\n",
-             MAXIMUM_FEAT_DIM);
-    }
+    const PlyProperty *const aux_prop =
+        vertex_element->GetPropertyByName("segment");
     // check data type, which should be float
-    for (int i = 0; i < num_aux; i++) {
-      if (aux_props[i]->data_type() != DT_FLOAT32) {
-        return Status(Status::INVALID_PARAMETER,
-                      "auxiliary data must be float32");
-      }
+    if (aux_prop != nullptr && aux_prop->data_type() != DT_FLOAT32) {
+      return Status(Status::INVALID_PARAMETER,
+                    "Type of auxiliary data must be float32");
     }
     // For now, all auxiliary data properties must be set and of type float32
-    {
-      std::vector<std::unique_ptr<PlyPropertyReader<float>>> aux_readers;
-      for (int i = 0; i < num_aux; i++) {
-        aux_readers.push_back(std::unique_ptr<PlyPropertyReader<float>>(
-            new PlyPropertyReader<float>(aux_props[i])));
-      }
-      GeometryAttribute va;
-      va.Init(GeometryAttribute::AUX, nullptr, num_aux, DT_FLOAT32, false,
-              sizeof(float) * num_aux, 0);
-      const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        std::vector<float> val(num_aux);
-        for (int j = 0; j < num_aux; j++) {
-          val[j] = aux_readers[j]->ReadValue(i);
-        }
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), val.data());
-      }
+    PlyPropertyReader<float> aux_reader(aux_prop);
+    GeometryAttribute va;
+    va.Init(GeometryAttribute::AUX, nullptr, 1, DT_FLOAT32, false, sizeof(float), 0);
+    const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
+    for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
+      float val = aux_reader.ReadValue(i);
+      out_point_cloud_->attribute(att_id)->SetAttributeValue(
+          AttributeValueIndex(i), &val);
     }
   }
-
-  /********************* inst label *********************/
-  {
-    // 0 or 1
-    const PlyProperty *const label_prop =
-        vertex_element->GetPropertyByName("inst_label");
-    if (label_prop != nullptr) {
-      if (label_prop->data_type() != DT_FLOAT32) {
-        return Status(Status::INVALID_PARAMETER,
-                      "Type of inst_label property must be float32");
-      }
-      PlyPropertyReader<float> label_reader(label_prop);
-      GeometryAttribute va;
-      va.Init(GeometryAttribute::INST_LABEL, nullptr, 1, DT_FLOAT32, false,
-              sizeof(float), 0);
-      const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        float val = label_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
-      }
-    }
-  }
+  // /********************* auxiliary data  **********************/
+  // {
+  //   // TODO 0-1?
+  //   int num_aux = 0;
+  //   int MAXIMUM_FEAT_DIM = 16;
+  //   const PlyProperty *aux_props[MAXIMUM_FEAT_DIM];
+  //   for (num_aux = 0; num_aux < MAXIMUM_FEAT_DIM; num_aux++) {
+  //     const std::string aux_name = "f_aux_" + std::to_string(num_aux);
+  //     aux_props[num_aux] = vertex_element->GetPropertyByName(aux_name);
+  //     if (aux_props[num_aux] == nullptr) {
+  //       break;
+  //     }
+  //   }
+  //   if (num_aux == MAXIMUM_FEAT_DIM) {
+  //     printf("Support %d feature dim for auxiliary data at most\n",
+  //            MAXIMUM_FEAT_DIM);
+  //   }
+  //   // check data type, which should be float
+  //   for (int i = 0; i < num_aux; i++) {
+  //     if (aux_props[i]->data_type() != DT_FLOAT32) {
+  //       return Status(Status::INVALID_PARAMETER,
+  //                     "auxiliary data must be float32");
+  //     }
+  //   }
+  //   // For now, all auxiliary data properties must be set and of type float32
+  //   {
+  //     std::vector<std::unique_ptr<PlyPropertyReader<float>>> aux_readers;
+  //     for (int i = 0; i < num_aux; i++) {
+  //       aux_readers.push_back(std::unique_ptr<PlyPropertyReader<float>>(
+  //           new PlyPropertyReader<float>(aux_props[i])));
+  //     }
+  //     GeometryAttribute va;
+  //     va.Init(GeometryAttribute::AUX, nullptr, num_aux, DT_FLOAT32, false,
+  //             sizeof(float) * num_aux, 0);
+  //     const int att_id = out_point_cloud_->AddAttribute(va, true,
+  //     num_vertices); for (PointIndex::ValueType i = 0; i < num_vertices; ++i)
+  //     {
+  //       std::vector<float> val(num_aux);
+  //       for (int j = 0; j < num_aux; j++) {
+  //         val[j] = aux_readers[j]->ReadValue(i);
+  //       }
+  //       out_point_cloud_->attribute(att_id)->SetAttributeValue(
+  //           AttributeValueIndex(i), val.data());
+  //     }
+  //   }
+  // }
 
   return OkStatus();
 }

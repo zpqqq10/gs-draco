@@ -59,8 +59,7 @@ class GeometryAttribute {
     OPACITY, // opacity
     SCALE, // scale
     ROTATION, // rotation
-    AUX, // auxillary data, feature vector, varied length, 2/4/8..., used for mlp
-    INST_LABEL, // 0/1 
+    AUX, // auxillary data, segment, 1d
     // A special id used to mark attributes that are not assigned to any known
     // predefined use case. Such attributes are often used for a shader specific
     // data.
@@ -263,8 +262,6 @@ class GeometryAttribute {
         return "ROTATION";
       case AUX:
         return "AUX";
-      case INST_LABEL:
-        return "INST_LABEL";
       case GENERIC:
         return "GENERIC";
 #ifdef DRACO_TRANSCODER_SUPPORTED
