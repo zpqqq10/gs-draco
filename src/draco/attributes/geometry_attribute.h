@@ -54,12 +54,16 @@ class GeometryAttribute {
     COLOR,
     TEX_COORD,
     // for gaussian support
-    SH_DC,   // direct current of spherical harmonics coefficients
-    SH_REST,   // high order spherical harmonics coefficients
-    OPACITY, // opacity
-    SCALE, // scale
-    ROTATION, // rotation
-    AUX, // auxillary data, segment, 1d
+    SH_DC,         // direct current of spherical harmonics coefficients
+    SH_REST,       // high order spherical harmonics coefficients
+    OPACITY,       // opacity
+    SCALE,         // scale
+    ROTATION,      // rotation
+    AUX,           // auxillary data, segment, 1d
+    SH_DC_IDX,     // idx from vq
+    SH_REST_IDX,   // idx from vq
+    SCALE_IDX,     // idx from vq
+    ROTATION_IDX,  // idx from vq
     // A special id used to mark attributes that are not assigned to any known
     // predefined use case. Such attributes are often used for a shader specific
     // data.
@@ -262,6 +266,14 @@ class GeometryAttribute {
         return "ROTATION";
       case AUX:
         return "AUX";
+      case SH_DC_IDX:
+        return "SH_DC_IDX";
+      case SH_REST_IDX:
+        return "SH_REST_IDX";
+      case SCALE_IDX:
+        return "SCALE_IDX";
+      case ROTATION_IDX:
+        return "ROTATION_IDX";
       case GENERIC:
         return "GENERIC";
 #ifdef DRACO_TRANSCODER_SUPPORTED

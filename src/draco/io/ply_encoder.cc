@@ -63,7 +63,6 @@ bool PlyEncoder::EncodeToBuffer(const Mesh &mesh, EncoderBuffer *out_buffer) {
 }
 bool PlyEncoder::EncodeInternal() {
   // Write PLY header.
-  // TODO(ostava): Currently works only for xyz positions and rgb(a) colors.
   std::stringstream out;
   out << "ply" << std::endl;
   out << "format binary_little_endian 1.0" << std::endl;
@@ -87,9 +86,16 @@ bool PlyEncoder::EncodeInternal() {
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SCALE);
   const int rotation_att_id =
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::ROTATION);
+  const int dc_idx_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SH_DC_IDX);
+  const int sh_idx_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SH_REST_IDX);
+  const int scale_idx_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::SCALE_IDX);
+  const int rotation_idx_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::ROTATION_IDX);
   const int aux_att_id =
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::AUX);
-
   if (pos_att_id < 0) {
     return false;
   }
@@ -154,6 +160,15 @@ bool PlyEncoder::EncodeInternal() {
           << i << std::endl;
     }
   }
+  // idx from vq
+  if (dc_idx_att_id >= 0) {
+    out << "property " << GetAttributeDataType(dc_idx_att_id) << " dc_idx"
+        << std::endl;
+  }
+  if (sh_idx_att_id >= 0) {
+    out << "property " << GetAttributeDataType(sh_idx_att_id) << " rest_idx"
+        << std::endl;
+  }
   // opacity
   if (opacity_att_id >= 0) {
     out << "property " << GetAttributeDataType(opacity_att_id) << " opacity"
@@ -183,9 +198,18 @@ bool PlyEncoder::EncodeInternal() {
     out << "property " << GetAttributeDataType(rotation_att_id) << " rot_3"
         << std::endl;
   }
+  // idx from vq
+  if (scale_idx_att_id >= 0) {
+    out << "property " << GetAttributeDataType(scale_idx_att_id) << " scale_idx"
+        << std::endl;
+  }
+  if (rotation_idx_att_id >= 0) {
+    out << "property " << GetAttributeDataType(rotation_idx_att_id)
+        << " rotation_idx" << std::endl;
+  }
   // auxiliary data
   if (aux_att_id >= 0) {
-    out << "property " << GetAttributeDataType(rotation_att_id) << " segment"
+    out << "property " << GetAttributeDataType(aux_att_id) << " segment"
         << std::endl;
   }
 
@@ -233,6 +257,16 @@ bool PlyEncoder::EncodeInternal() {
       buffer()->Encode(sh_rest_att->GetAddress(sh_rest_att->mapped_index(v)),
                        sh_rest_att->byte_stride());
     }
+    if (dc_idx_att_id >= 0) {
+      const auto *const dc_idx_att = in_point_cloud_->attribute(dc_idx_att_id);
+      buffer()->Encode(dc_idx_att->GetAddress(dc_idx_att->mapped_index(v)),
+                       dc_idx_att->byte_stride());
+    }
+    if (sh_idx_att_id >= 0) {
+      const auto *const sh_idx_att = in_point_cloud_->attribute(sh_idx_att_id);
+      buffer()->Encode(sh_idx_att->GetAddress(sh_idx_att->mapped_index(v)),
+                       sh_idx_att->byte_stride());
+    }
     if (opacity_att_id >= 0) {
       const auto *const opacity_att =
           in_point_cloud_->attribute(opacity_att_id);
@@ -249,6 +283,20 @@ bool PlyEncoder::EncodeInternal() {
           in_point_cloud_->attribute(rotation_att_id);
       buffer()->Encode(rotation_att->GetAddress(rotation_att->mapped_index(v)),
                        rotation_att->byte_stride());
+    }
+    if (scale_idx_att_id >= 0) {
+      const auto *const scale_idx_att =
+          in_point_cloud_->attribute(scale_idx_att_id);
+      buffer()->Encode(
+          scale_idx_att->GetAddress(scale_idx_att->mapped_index(v)),
+          scale_idx_att->byte_stride());
+    }
+    if (rotation_idx_att_id >= 0) {
+      const auto *const rotation_idx_att =
+          in_point_cloud_->attribute(rotation_idx_att_id);
+      buffer()->Encode(
+          rotation_idx_att->GetAddress(rotation_idx_att->mapped_index(v)),
+          rotation_idx_att->byte_stride());
     }
     if (aux_att_id >= 0) {
       const auto *const aux_att = in_point_cloud_->attribute(aux_att_id);
@@ -304,6 +352,8 @@ const char *PlyEncoder::GetAttributeDataType(int attribute) {
       return "uchar";
     case DT_INT32:
       return "int";
+    case DT_UINT32:
+      return "uint";
     default:
       break;
   }
