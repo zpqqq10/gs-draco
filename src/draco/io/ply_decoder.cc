@@ -563,21 +563,39 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("segment");
     // check data type, which should be float
     if (aux_prop != nullptr) {
-      if (aux_prop->data_type() != DT_FLOAT32) {
+      if (aux_prop->data_type() != DT_FLOAT32 &&
+          aux_prop->data_type() != DT_INT32) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of auxiliary data must be float32");
+                      "Type of auxiliary data must be float32 or int32");
       }
-      // For now, all auxiliary data properties must be set and of type
-      // float32
-      PlyPropertyReader<float> aux_reader(aux_prop);
-      GeometryAttribute va;
-      va.Init(GeometryAttribute::AUX, nullptr, 1, DT_FLOAT32, false,
-              sizeof(float), 0);
-      const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        float val = aux_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
+      if (aux_prop->data_type() == DT_FLOAT32) {
+        // For now, all auxiliary data properties must be set and of type
+        // float32
+        PlyPropertyReader<float> aux_reader(aux_prop);
+        GeometryAttribute va;
+        va.Init(GeometryAttribute::AUX, nullptr, 1, DT_FLOAT32, false,
+                sizeof(float), 0);
+        const int att_id =
+            out_point_cloud_->AddAttribute(va, true, num_vertices);
+        for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
+          float val = aux_reader.ReadValue(i);
+          out_point_cloud_->attribute(att_id)->SetAttributeValue(
+              AttributeValueIndex(i), &val);
+        }
+      } else {
+        // For now, all auxiliary data properties must be set and of type
+        // int32
+        PlyPropertyReader<int32_t> aux_reader(aux_prop);
+        GeometryAttribute va;
+        va.Init(GeometryAttribute::AUX, nullptr, 1, DT_INT32, false,
+                sizeof(int32_t), 0);
+        const int att_id =
+            out_point_cloud_->AddAttribute(va, true, num_vertices);
+        for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
+          int32_t val = aux_reader.ReadValue(i);
+          out_point_cloud_->attribute(att_id)->SetAttributeValue(
+              AttributeValueIndex(i), &val);
+        }
       }
     }
   }
