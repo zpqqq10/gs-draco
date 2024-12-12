@@ -58,7 +58,7 @@ bool IsDataTypeIntegral(DataType dt) {
   }
 }
 
-bool IsDataTypeIntegralButBool(DataType dt) {
+bool IsDataTypeGSIntegralButBool(DataType dt) {
   switch (dt) {
     case DT_INT8:
     case DT_UINT8:
@@ -66,8 +66,8 @@ bool IsDataTypeIntegralButBool(DataType dt) {
     case DT_UINT16:
     case DT_INT32:
     case DT_UINT32:
-    case DT_INT64:
-    case DT_UINT64:
+    // case DT_INT64:
+    // case DT_UINT64:
       return true;
     default:
       return false;

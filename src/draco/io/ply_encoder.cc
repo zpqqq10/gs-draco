@@ -348,8 +348,14 @@ const char *PlyEncoder::GetAttributeDataType(int attribute) {
   switch (in_point_cloud_->attribute(attribute)->data_type()) {
     case DT_FLOAT32:
       return "float";
+    case DT_INT8:
+      return "char";
     case DT_UINT8:
       return "uchar";
+    case DT_INT16:
+      return "short";
+    case DT_UINT16:
+      return "ushort";
     case DT_INT32:
       return "int";
     case DT_UINT32:

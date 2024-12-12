@@ -49,7 +49,7 @@ bool IsDataTypeIntegral(DataType dt);
 
 // Returns true for all signed and unsigned integer types (not including
 // DT_BOOL). Returns false otherwise.
-bool IsDataTypeIntegralButBool(DataType dt);
+bool IsDataTypeGSIntegralButBool(DataType dt);
 
 }  // namespace draco
 

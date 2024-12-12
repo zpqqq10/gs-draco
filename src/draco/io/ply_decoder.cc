@@ -158,6 +158,44 @@ bool PlyDecoder::ReadPropertiesToAttribute(
   return true;
 }
 
+// switch to use ReadPropertiesToAttribute according to the data type
+bool PlyDecoder::SwitchGSProperty(std::vector<const PlyProperty *> &properties,
+                                  const DataType dt, const int att_id,
+                                  const int num_vertices) {
+  switch (dt) {
+    case DT_FLOAT32:
+      ReadPropertiesToAttribute<float>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    case DT_UINT8:
+      ReadPropertiesToAttribute<uint8_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    case DT_INT8:
+      ReadPropertiesToAttribute<int8_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    case DT_UINT16:
+      ReadPropertiesToAttribute<uint16_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    case DT_INT16:
+      ReadPropertiesToAttribute<int16_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    case DT_UINT32:
+      ReadPropertiesToAttribute<uint32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    case DT_INT32:
+      ReadPropertiesToAttribute<int32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      return false;
+    default:
+      return true;
+  }
+}
+
 Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
   if (vertex_element == nullptr) {
     return Status(Status::INVALID_PARAMETER, "vertex_element is null");
@@ -375,43 +413,61 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       }
     }
     if (dc0_prop && dc1_prop && dc2_prop) {
-      // check data type, which should be float
-      if (dc0_prop->data_type() != dc1_prop->data_type() ||
-          dc1_prop->data_type() != dc2_prop->data_type() ||
-          dc0_prop->data_type() != DT_FLOAT32) {
+      // check data type
+      const DataType dt = dc0_prop->data_type();
+      if (dc1_prop->data_type() != dt || dc2_prop->data_type() != dt) {
+        // check consistency of data type
         return Status(Status::INVALID_PARAMETER,
-                      "spherical harmonics coefficients must be float32");
+                      "spherical harmonics coefficients must be of same type");
+      } else if (CheckGSType(dt)) {
+        // check if it is supported
+        return Status(
+            Status::INVALID_PARAMETER,
+            "spherical harmonics coefficients must be float32 or integral");
       }
       // For now, all coefficient properties must be set and of type float32
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SH_DC, nullptr, 3, DT_FLOAT32, false,
-              sizeof(float) * 3, 0);
+      va.Init(GeometryAttribute::SH_DC, nullptr, 3, dt, false,
+              DataTypeLength(dt) * 3, 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(dc0_prop);
       properties.push_back(dc1_prop);
       properties.push_back(dc2_prop);
-      ReadPropertiesToAttribute<float>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      // read according to the data type
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        Status(Status::INVALID_PARAMETER,
+               "spherical harmonics coefficients must be float32 or integral");
+      }
     }
     if (num_high_orders) {
+      const DataType dt = high_order_props[0]->data_type();
       for (int i = 0; i < num_high_orders; i++) {
-        if (high_order_props[i]->data_type() != DT_FLOAT32) {
-          return Status(Status::INVALID_PARAMETER,
-                        "spherical harmonics coefficients must be float32");
+        if (high_order_props[i]->data_type() != dt) {
+          return Status(
+              Status::INVALID_PARAMETER,
+              "spherical harmonics coefficients must be of same type");
         }
       }
+      if (CheckGSType(dt)) {
+        return Status(
+            Status::INVALID_PARAMETER,
+            "spherical harmonics coefficients must be float32 or integral");
+      }
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SH_REST, nullptr, num_high_orders, DT_FLOAT32,
-              false, sizeof(float) * num_high_orders, 0);
+      va.Init(GeometryAttribute::SH_REST, nullptr, num_high_orders, dt, false,
+              DataTypeLength(dt) * num_high_orders, 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.reserve(num_high_orders);
       for (int i = 0; i < num_high_orders; i++) {
         properties.push_back(high_order_props[i]);
       }
-      ReadPropertiesToAttribute<float>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "spherical harmonics coefficients must be float32 or "
+                      "integral");
+      }
     }
   }
 
@@ -421,19 +477,22 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
     const PlyProperty *const opacity_prop =
         vertex_element->GetPropertyByName("opacity");
     if (opacity_prop != nullptr) {
-      if (opacity_prop->data_type() != DT_FLOAT32) {
+      const DataType dt = opacity_prop->data_type();
+      if (CheckGSType(dt)) {
         return Status(Status::INVALID_PARAMETER,
                       "Type of opacity property must be float32");
       }
       PlyPropertyReader<float> opacity_reader(opacity_prop);
       GeometryAttribute va;
-      va.Init(GeometryAttribute::OPACITY, nullptr, 1, DT_FLOAT32, false,
-              sizeof(float), 0);
+      va.Init(GeometryAttribute::OPACITY, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(opacity_prop);
-      ReadPropertiesToAttribute<float>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of opacity property must be float32 or integral");
+      }
     }
   }
 
@@ -451,16 +510,23 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       }
     }
     if (num_scales) {
+      const DataType dt = scale_props[0]->data_type();
       for (int i = 0; i < num_scales; i++) {
-        if (scale_props[i]->data_type() != DT_FLOAT32) {
-          return Status(Status::INVALID_PARAMETER,
-                        "spherical harmonics coefficients must be float32");
+        if (scale_props[i]->data_type() != dt) {
+          return Status(
+              Status::INVALID_PARAMETER,
+              "spherical harmonics coefficients must be of same type");
         }
+      }
+      if (CheckGSType(dt)) {
+        return Status(
+            Status::INVALID_PARAMETER,
+            "spherical harmonics coefficients must be float32 or integral");
       }
 
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SCALE, nullptr, num_scales, DT_FLOAT32, false,
-              sizeof(float) * num_scales, 0);
+      va.Init(GeometryAttribute::SCALE, nullptr, num_scales, dt, false,
+              DataTypeLength(dt) * num_scales, 0);
       const int32_t att_id =
           out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
@@ -468,8 +534,10 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       for (int i = 0; i < num_scales; i++) {
         properties.push_back(scale_props[i]);
       }
-      ReadPropertiesToAttribute<float>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "scales must be float32 or integral");
+      }
     }
   }
 
@@ -485,16 +553,19 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("rot_3");
     if (rot0_prop != nullptr && rot1_prop != nullptr && rot2_prop != nullptr &&
         rot3_prop != nullptr) {
-      if (rot0_prop->data_type() != DT_FLOAT32 ||
-          rot1_prop->data_type() != DT_FLOAT32 ||
-          rot2_prop->data_type() != DT_FLOAT32 ||
-          rot3_prop->data_type() != DT_FLOAT32) {
+      const DataType dt = rot0_prop->data_type();
+      if (rot1_prop->data_type() != dt || rot2_prop->data_type() != dt ||
+          rot3_prop->data_type() != dt) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of rotation property must be float32");
+                      "Type of rotation property must be of same type");
+      }
+      if (CheckGSType(dt)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of rotation property must be float32 or integral");
       }
       GeometryAttribute va;
-      va.Init(GeometryAttribute::ROTATION, nullptr, 4, DT_FLOAT32, false,
-              sizeof(float) * 4, 0);
+      va.Init(GeometryAttribute::ROTATION, nullptr, 4, dt, false,
+              DataTypeLength(dt) * 4, 0);
       const int32_t att_id =
           out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
@@ -502,8 +573,10 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       properties.push_back(rot1_prop);
       properties.push_back(rot2_prop);
       properties.push_back(rot3_prop);
-      ReadPropertiesToAttribute<float>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of rotation property must be float32 or integral");
+      }
     }
   }
 
@@ -514,26 +587,26 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("segment");
     // check data type, which should be float
     if (aux_prop != nullptr) {
-      if (aux_prop->data_type() != DT_FLOAT32 &&
-          aux_prop->data_type() != DT_INT32) {
+      const DataType dt = aux_prop->data_type();
+      if (dt != DT_UINT8 && dt != DT_INT8) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of auxiliary data must be float32 or int32");
+                      "Type of auxiliary data must be uint8 or int8");
       }
       GeometryAttribute va;
-      va.Init(GeometryAttribute::AUX, nullptr, 1, aux_prop->data_type(), false,
-              DataTypeLength(aux_prop->data_type()), 0);
+      va.Init(GeometryAttribute::AUX, nullptr, 1, dt, false, DataTypeLength(dt),
+              0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(aux_prop);
-      if (aux_prop->data_type() == DT_FLOAT32) {
+      if (dt == DT_UINT8) {
         // For now, all auxiliary data properties must be set and of type
-        // float32
-        ReadPropertiesToAttribute<float>(
+        // uint8
+        ReadPropertiesToAttribute<uint8_t>(
             properties, out_point_cloud_->attribute(att_id), num_vertices);
       } else {
         // For now, all auxiliary data properties must be set and of type
-        // int32
-        ReadPropertiesToAttribute<int32_t>(
+        // int8
+        ReadPropertiesToAttribute<int8_t>(
             properties, out_point_cloud_->attribute(att_id), num_vertices);
       }
     }
@@ -593,19 +666,22 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("dc_idx");
     // check data type, which should be int32_t
     if (dc_idx_prop != nullptr) {
-      if (dc_idx_prop->data_type() != DT_INT32) {
+      const DataType dt = dc_idx_prop->data_type();
+      if (dt != DT_UINT8 && dt != DT_UINT16 && dt != DT_UINT32) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of dc idx data must be uint32");
+                      "Type of dc idx data must be uint");
       }
-      // For now, all index data properties must be set and of type uint32
+      // For now, all index data properties must be set and of type uint
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SH_DC_IDX, nullptr, 1, DT_INT32, false,
-              sizeof(int32_t), 0);
+      va.Init(GeometryAttribute::SH_DC_IDX, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(dc_idx_prop);
-      ReadPropertiesToAttribute<int32_t>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of dc idx data must be uint");
+      }
     }
   }
 
@@ -615,19 +691,22 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("rest_idx");
     // check data type, which should be int32_t
     if (sh_idx_prop != nullptr) {
-      if (sh_idx_prop->data_type() != DT_INT32) {
+      const DataType dt = sh_idx_prop->data_type();
+      if (dt != DT_UINT8 && dt != DT_UINT16 && dt != DT_UINT32) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of sh idx data must be uint32");
+                      "Type of sh idx data must be uint111");
       }
-      // For now, all index data properties must be set and of type uint32
+      // For now, all index data properties must be set and of type uint
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SH_REST_IDX, nullptr, 1, DT_INT32, false,
-              sizeof(int32_t), 0);
+      va.Init(GeometryAttribute::SH_REST_IDX, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(sh_idx_prop);
-      ReadPropertiesToAttribute<int32_t>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of sh idx data must be uint");
+      }
     }
   }
 
@@ -637,19 +716,22 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("scale_idx");
     // check data type, which should be int32_t
     if (scale_idx_prop != nullptr) {
-      if (scale_idx_prop->data_type() != DT_INT32) {
+      const DataType dt = scale_idx_prop->data_type();
+      if (dt != DT_UINT8 && dt != DT_UINT16 && dt != DT_UINT32) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of scale idx data must be uint32");
+                      "Type of scale idx data must be uint");
       }
-      // For now, all index data properties must be set and of type uint32
+      // For now, all index data properties must be set and of type uint
       GeometryAttribute va;
-      va.Init(GeometryAttribute::SCALE_IDX, nullptr, 1, DT_INT32, false,
-              sizeof(int32_t), 0);
+      va.Init(GeometryAttribute::SCALE_IDX, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(scale_idx_prop);
-      ReadPropertiesToAttribute<int32_t>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of scale idx data must be uint");
+      }
     }
   }
 
@@ -659,23 +741,36 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("rotation_idx");
     // check data type, which should be int32_t
     if (rotation_idx_prop != nullptr) {
-      if (rotation_idx_prop->data_type() != DT_INT32) {
+      const DataType dt = rotation_idx_prop->data_type();
+      if (dt != DT_UINT8 && dt != DT_UINT16 && dt != DT_UINT32) {
         return Status(Status::INVALID_PARAMETER,
-                      "Type of rotation idx data must be uint32");
+                      "Type of rotation idx data must be uint");
       }
-      // For now, all index data properties must be set and of type uint32
+      // For now, all index data properties must be set and of type uint
       GeometryAttribute va;
-      va.Init(GeometryAttribute::ROTATION_IDX, nullptr, 1, DT_INT32, false,
-              sizeof(int32_t), 0);
+      va.Init(GeometryAttribute::ROTATION_IDX, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
       std::vector<const PlyProperty *> properties;
       properties.push_back(rotation_idx_prop);
-      ReadPropertiesToAttribute<int32_t>(
-          properties, out_point_cloud_->attribute(att_id), num_vertices);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of rotation idx data must be uint");
+      }
     }
   }
 
   return OkStatus();
+}
+
+bool PlyDecoder::CheckGSType(DataType dt) {
+  if (dt != DT_FLOAT32) {
+    if (!IsDataTypeGSIntegralButBool(dt)) {
+      printf("Maximal 4 bytes for integral type!\n");
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace draco

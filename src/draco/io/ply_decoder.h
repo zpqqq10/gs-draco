@@ -50,11 +50,16 @@ class PlyDecoder {
  private:
   Status DecodeFaceData(const PlyElement *face_element);
   Status DecodeVertexData(const PlyElement *vertex_element);
+  // return true if illegal
+  bool CheckGSType(DataType dt);
 
   template <typename DataTypeT>
   bool ReadPropertiesToAttribute(
       const std::vector<const PlyProperty *> &properties,
       PointAttribute *attribute, int num_vertices);
+  bool SwitchGSProperty(std::vector<const PlyProperty *> &properties,
+                        const DataType dt, const int att_id,
+                        const int num_vertices);
 
   DecoderBuffer buffer_;
 
