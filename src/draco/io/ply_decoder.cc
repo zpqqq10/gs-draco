@@ -376,28 +376,23 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
     }
     if (dc0_prop && dc1_prop && dc2_prop) {
       // check data type, which should be float
-      if (dc0_prop->data_type() != DT_FLOAT32 ||
-          dc1_prop->data_type() != DT_FLOAT32 ||
-          dc2_prop->data_type() != DT_FLOAT32) {
+      if (dc0_prop->data_type() != dc1_prop->data_type() ||
+          dc1_prop->data_type() != dc2_prop->data_type() ||
+          dc0_prop->data_type() != DT_FLOAT32) {
         return Status(Status::INVALID_PARAMETER,
                       "spherical harmonics coefficients must be float32");
       }
       // For now, all coefficient properties must be set and of type float32
-      PlyPropertyReader<float> dc0_reader(dc0_prop);
-      PlyPropertyReader<float> dc1_reader(dc1_prop);
-      PlyPropertyReader<float> dc2_reader(dc2_prop);
       GeometryAttribute va;
       va.Init(GeometryAttribute::SH_DC, nullptr, 3, DT_FLOAT32, false,
               sizeof(float) * 3, 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        std::array<float, 3> val;
-        val[0] = dc0_reader.ReadValue(i);
-        val[1] = dc1_reader.ReadValue(i);
-        val[2] = dc2_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val[0]);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(dc0_prop);
+      properties.push_back(dc1_prop);
+      properties.push_back(dc2_prop);
+      ReadPropertiesToAttribute<float>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
     if (num_high_orders) {
       for (int i = 0; i < num_high_orders; i++) {
@@ -406,23 +401,17 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
                         "spherical harmonics coefficients must be float32");
         }
       }
-      std::vector<std::unique_ptr<PlyPropertyReader<float>>> high_order_readers;
-      for (int i = 0; i < num_high_orders; i++) {
-        high_order_readers.push_back(std::unique_ptr<PlyPropertyReader<float>>(
-            new PlyPropertyReader<float>(high_order_props[i])));
-      }
       GeometryAttribute va;
       va.Init(GeometryAttribute::SH_REST, nullptr, num_high_orders, DT_FLOAT32,
               false, sizeof(float) * num_high_orders, 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        std::vector<float> val(num_high_orders);
-        for (int j = 0; j < num_high_orders; j++) {
-          val[j] = high_order_readers[j]->ReadValue(i);
-        }
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), val.data());
+      std::vector<const PlyProperty *> properties;
+      properties.reserve(num_high_orders);
+      for (int i = 0; i < num_high_orders; i++) {
+        properties.push_back(high_order_props[i]);
       }
+      ReadPropertiesToAttribute<float>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -441,11 +430,10 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       va.Init(GeometryAttribute::OPACITY, nullptr, 1, DT_FLOAT32, false,
               sizeof(float), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        float val = opacity_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(opacity_prop);
+      ReadPropertiesToAttribute<float>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -453,47 +441,21 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
   {
     // TODO 0-1?
     int num_scales = 0;
-    const PlyProperty *const scale0_prop =
-        vertex_element->GetPropertyByName("scale_0");
-    const PlyProperty *const scale1_prop =
-        vertex_element->GetPropertyByName("scale_1");
-    const PlyProperty *const scale2_prop =
-        vertex_element->GetPropertyByName("scale_2");
-    if (scale0_prop) {
-      ++num_scales;
-    }
-    if (scale1_prop) {
-      ++num_scales;
-    }
-    if (scale2_prop) {
-      // if not, this is 2d gaussian
-      ++num_scales;
+    const int MAXIMUM_SCALE_DIM = 3;
+    const PlyProperty *scale_props[MAXIMUM_SCALE_DIM];
+    for (num_scales = 0; num_scales < MAXIMUM_SCALE_DIM; num_scales++) {
+      const std::string scale_name = "scale_" + std::to_string(num_scales);
+      scale_props[num_scales] = vertex_element->GetPropertyByName(scale_name);
+      if (scale_props[num_scales] == nullptr) {
+        break;
+      }
     }
     if (num_scales) {
-      std::vector<std::unique_ptr<PlyPropertyReader<float>>> scale_readers;
-      if (scale0_prop) {
-        if (scale0_prop->data_type() != DT_FLOAT32) {
+      for (int i = 0; i < num_scales; i++) {
+        if (scale_props[i]->data_type() != DT_FLOAT32) {
           return Status(Status::INVALID_PARAMETER,
-                        "Type of scale property must be float32");
+                        "spherical harmonics coefficients must be float32");
         }
-        scale_readers.push_back(std::unique_ptr<PlyPropertyReader<float>>(
-            new PlyPropertyReader<float>(scale0_prop)));
-      }
-      if (scale1_prop) {
-        if (scale1_prop->data_type() != DT_FLOAT32) {
-          return Status(Status::INVALID_PARAMETER,
-                        "Type of scale property must be float32");
-        }
-        scale_readers.push_back(std::unique_ptr<PlyPropertyReader<float>>(
-            new PlyPropertyReader<float>(scale1_prop)));
-      }
-      if (scale2_prop) {
-        if (scale2_prop->data_type() != DT_FLOAT32) {
-          return Status(Status::INVALID_PARAMETER,
-                        "Type of scale property must be float32");
-        }
-        scale_readers.push_back(std::unique_ptr<PlyPropertyReader<float>>(
-            new PlyPropertyReader<float>(scale2_prop)));
       }
 
       GeometryAttribute va;
@@ -501,14 +463,13 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
               sizeof(float) * num_scales, 0);
       const int32_t att_id =
           out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        std::array<float, 3> val;
-        for (int j = 0; j < num_scales; j++) {
-          val[j] = scale_readers[j]->ReadValue(i);
-        }
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val[0]);
+      std::vector<const PlyProperty *> properties;
+      properties.reserve(num_scales);
+      for (int i = 0; i < num_scales; i++) {
+        properties.push_back(scale_props[i]);
       }
+      ReadPropertiesToAttribute<float>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -524,7 +485,6 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         vertex_element->GetPropertyByName("rot_3");
     if (rot0_prop != nullptr && rot1_prop != nullptr && rot2_prop != nullptr &&
         rot3_prop != nullptr) {
-      std::array<std::unique_ptr<PlyPropertyReader<float>>, 4> quat_readers;
       if (rot0_prop->data_type() != DT_FLOAT32 ||
           rot1_prop->data_type() != DT_FLOAT32 ||
           rot2_prop->data_type() != DT_FLOAT32 ||
@@ -532,27 +492,18 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         return Status(Status::INVALID_PARAMETER,
                       "Type of rotation property must be float32");
       }
-      quat_readers[0] = std::unique_ptr<PlyPropertyReader<float>>(
-          new PlyPropertyReader<float>(rot0_prop));
-      quat_readers[1] = std::unique_ptr<PlyPropertyReader<float>>(
-          new PlyPropertyReader<float>(rot1_prop));
-      quat_readers[2] = std::unique_ptr<PlyPropertyReader<float>>(
-          new PlyPropertyReader<float>(rot2_prop));
-      quat_readers[3] = std::unique_ptr<PlyPropertyReader<float>>(
-          new PlyPropertyReader<float>(rot3_prop));
       GeometryAttribute va;
       va.Init(GeometryAttribute::ROTATION, nullptr, 4, DT_FLOAT32, false,
               sizeof(float) * 4, 0);
       const int32_t att_id =
           out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        std::array<float, 4> val;
-        for (int j = 0; j < 4; j++) {
-          val[j] = quat_readers[j]->ReadValue(i);
-        }
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val[0]);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(rot0_prop);
+      properties.push_back(rot1_prop);
+      properties.push_back(rot2_prop);
+      properties.push_back(rot3_prop);
+      ReadPropertiesToAttribute<float>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -568,34 +519,22 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         return Status(Status::INVALID_PARAMETER,
                       "Type of auxiliary data must be float32 or int32");
       }
+      GeometryAttribute va;
+      va.Init(GeometryAttribute::AUX, nullptr, 1, aux_prop->data_type(), false,
+              DataTypeLength(aux_prop->data_type()), 0);
+      const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(aux_prop);
       if (aux_prop->data_type() == DT_FLOAT32) {
         // For now, all auxiliary data properties must be set and of type
         // float32
-        PlyPropertyReader<float> aux_reader(aux_prop);
-        GeometryAttribute va;
-        va.Init(GeometryAttribute::AUX, nullptr, 1, DT_FLOAT32, false,
-                sizeof(float), 0);
-        const int att_id =
-            out_point_cloud_->AddAttribute(va, true, num_vertices);
-        for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-          float val = aux_reader.ReadValue(i);
-          out_point_cloud_->attribute(att_id)->SetAttributeValue(
-              AttributeValueIndex(i), &val);
-        }
+        ReadPropertiesToAttribute<float>(
+            properties, out_point_cloud_->attribute(att_id), num_vertices);
       } else {
         // For now, all auxiliary data properties must be set and of type
         // int32
-        PlyPropertyReader<int32_t> aux_reader(aux_prop);
-        GeometryAttribute va;
-        va.Init(GeometryAttribute::AUX, nullptr, 1, DT_INT32, false,
-                sizeof(int32_t), 0);
-        const int att_id =
-            out_point_cloud_->AddAttribute(va, true, num_vertices);
-        for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-          int32_t val = aux_reader.ReadValue(i);
-          out_point_cloud_->attribute(att_id)->SetAttributeValue(
-              AttributeValueIndex(i), &val);
-        }
+        ReadPropertiesToAttribute<int32_t>(
+            properties, out_point_cloud_->attribute(att_id), num_vertices);
       }
     }
   }
@@ -659,16 +598,14 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
                       "Type of dc idx data must be uint32");
       }
       // For now, all index data properties must be set and of type uint32
-      PlyPropertyReader<int32_t> dc_idx_reader(dc_idx_prop);
       GeometryAttribute va;
       va.Init(GeometryAttribute::SH_DC_IDX, nullptr, 1, DT_INT32, false,
               sizeof(int32_t), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        int32_t val = dc_idx_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(dc_idx_prop);
+      ReadPropertiesToAttribute<int32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -683,16 +620,14 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
                       "Type of sh idx data must be uint32");
       }
       // For now, all index data properties must be set and of type uint32
-      PlyPropertyReader<int32_t> sh_idx_reader(sh_idx_prop);
       GeometryAttribute va;
       va.Init(GeometryAttribute::SH_REST_IDX, nullptr, 1, DT_INT32, false,
               sizeof(int32_t), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        int32_t val = sh_idx_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(sh_idx_prop);
+      ReadPropertiesToAttribute<int32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -707,16 +642,14 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
                       "Type of scale idx data must be uint32");
       }
       // For now, all index data properties must be set and of type uint32
-      PlyPropertyReader<int32_t> scale_idx_reader(scale_idx_prop);
       GeometryAttribute va;
       va.Init(GeometryAttribute::SCALE_IDX, nullptr, 1, DT_INT32, false,
               sizeof(int32_t), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        int32_t val = scale_idx_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(scale_idx_prop);
+      ReadPropertiesToAttribute<int32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 
@@ -731,16 +664,14 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
                       "Type of rotation idx data must be uint32");
       }
       // For now, all index data properties must be set and of type uint32
-      PlyPropertyReader<int32_t> scale_idx_reader(rotation_idx_prop);
       GeometryAttribute va;
       va.Init(GeometryAttribute::ROTATION_IDX, nullptr, 1, DT_INT32, false,
               sizeof(int32_t), 0);
       const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
-      for (PointIndex::ValueType i = 0; i < num_vertices; ++i) {
-        int32_t val = scale_idx_reader.ReadValue(i);
-        out_point_cloud_->attribute(att_id)->SetAttributeValue(
-            AttributeValueIndex(i), &val);
-      }
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(rotation_idx_prop);
+      ReadPropertiesToAttribute<int32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
 

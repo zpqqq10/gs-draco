@@ -47,6 +47,10 @@ int32_t DataTypeLength(DataType dt);
 // otherwise.
 bool IsDataTypeIntegral(DataType dt);
 
+// Returns true for all signed and unsigned integer types (not including
+// DT_BOOL). Returns false otherwise.
+bool IsDataTypeIntegralButBool(DataType dt);
+
 }  // namespace draco
 
 #endif  // DRACO_CORE_DRACO_TYPES_H_

@@ -10,8 +10,11 @@ import numpy as np
 # reference = plyfile.PlyData.read('../compact3d/gaussian-splatting/output/post-vq/train/point_cloud/post_vq/sh_index_pc.ply')
 # restore = plyfile.PlyData.read('sh_index_pc.ply')
 
-reference = plyfile.PlyData.read('../morton_pc.ply')
-restore = plyfile.PlyData.read('../morton_pc_qp12_decoded.ply')
+# reference = plyfile.PlyData.read('../morton_pc.ply')
+# restore = plyfile.PlyData.read('../morton_pc_qp12_decoded.ply')
+
+reference = plyfile.PlyData.read('../processSingleGroup/point_cloud.ply')
+restore = plyfile.PlyData.read('./restore.ply')
 
 
 # convert to dict
