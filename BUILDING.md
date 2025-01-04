@@ -17,6 +17,26 @@ _**Contents**_
   * [Native Android Builds](#native-android-builds)
   * [vcpkg](#vcpkg)
 
+Simple Building for gs-draco
+============================
+
+```bash
+mkdir build && cd build
+cmake ..
+make -j 16
+```
+
+To build custom function into wasm: 
+
+```bash
+# comment out the 2 include lines in src/draco/core/draco_test_base.h
+cd src
+emmake make
+```
+
+If necessary, add `export` at the beginning of the produced js and modify the path in `findWasmBinary()`. 
+
+
 Building
 ========
 For all platforms, you must first generate the project/make files and then

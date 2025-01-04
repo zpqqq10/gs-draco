@@ -482,7 +482,6 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
         return Status(Status::INVALID_PARAMETER,
                       "Type of opacity property must be float32");
       }
-      PlyPropertyReader<float> opacity_reader(opacity_prop);
       GeometryAttribute va;
       va.Init(GeometryAttribute::OPACITY, nullptr, 1, dt, false,
               DataTypeLength(dt), 0);
@@ -756,6 +755,52 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
         return Status(Status::INVALID_PARAMETER,
                       "Type of rotation idx data must be uint");
+      }
+    }
+  }
+
+  /********************* ins *********************/
+  {
+    const PlyProperty *const ins_prop =
+        vertex_element->GetPropertyByName("ins");
+    if (ins_prop != nullptr) {
+      const DataType dt = ins_prop->data_type();
+      if (!IsDataTypeGSIntegralButBool(dt)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of ins property must be integral");
+      }
+      GeometryAttribute va;
+      va.Init(GeometryAttribute::INS, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
+      const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(ins_prop);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of ins property must be integral");
+      }
+    }
+  }
+
+  /********************* outs *********************/
+  {
+    const PlyProperty *const outs_prop =
+        vertex_element->GetPropertyByName("outs");
+    if (outs_prop != nullptr) {
+      const DataType dt = outs_prop->data_type();
+      if (!IsDataTypeGSIntegralButBool(dt)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of outs property must be integral");
+      }
+      GeometryAttribute va;
+      va.Init(GeometryAttribute::OUTS, nullptr, 1, dt, false,
+              DataTypeLength(dt), 0);
+      const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
+      std::vector<const PlyProperty *> properties;
+      properties.push_back(outs_prop);
+      if (SwitchGSProperty(properties, dt, att_id, num_vertices)) {
+        return Status(Status::INVALID_PARAMETER,
+                      "Type of outs property must be integral");
       }
     }
   }

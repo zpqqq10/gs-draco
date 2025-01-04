@@ -4,3 +4,6 @@ build
 *.drc
 *.obj
 .cache
+
+drc2ply.js
+drc2ply.wasm

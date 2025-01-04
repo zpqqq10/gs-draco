@@ -96,6 +96,11 @@ bool PlyEncoder::EncodeInternal() {
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::ROTATION_IDX);
   const int aux_att_id =
       in_point_cloud_->GetNamedAttributeId(GeometryAttribute::AUX);
+
+  const int ins_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::INS);
+  const int outs_att_id =
+      in_point_cloud_->GetNamedAttributeId(GeometryAttribute::OUTS);
   if (pos_att_id < 0) {
     return false;
   }
@@ -213,6 +218,16 @@ bool PlyEncoder::EncodeInternal() {
         << std::endl;
   }
 
+  // gs visible & invisible frame idx
+  if (ins_att_id >= 0) {
+    out << "property " << GetAttributeDataType(ins_att_id) << " ins"
+        << std::endl;
+  }
+  if (outs_att_id >= 0) {
+    out << "property " << GetAttributeDataType(outs_att_id) << " outs"
+        << std::endl;
+  }
+
   if (in_mesh_) {
     out << "element face " << in_mesh_->num_faces() << std::endl;
     out << "property list uchar int vertex_indices" << std::endl;
@@ -302,6 +317,17 @@ bool PlyEncoder::EncodeInternal() {
       const auto *const aux_att = in_point_cloud_->attribute(aux_att_id);
       buffer()->Encode(aux_att->GetAddress(aux_att->mapped_index(v)),
                        aux_att->byte_stride());
+    }
+
+    if (ins_att_id >= 0) {
+      const auto *const ins_att = in_point_cloud_->attribute(ins_att_id);
+      buffer()->Encode(ins_att->GetAddress(ins_att->mapped_index(v)),
+                       ins_att->byte_stride());
+    }
+    if (outs_att_id >= 0) {
+      const auto *const outs_att = in_point_cloud_->attribute(outs_att_id);
+      buffer()->Encode(outs_att->GetAddress(outs_att->mapped_index(v)),
+                       outs_att->byte_stride());
     }
   }
 

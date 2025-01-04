@@ -64,6 +64,8 @@ class GeometryAttribute {
     SH_REST_IDX,   // idx from vq
     SCALE_IDX,     // idx from vq
     ROTATION_IDX,  // idx from vq
+    INS,           // gs visible frame idx
+    OUTS,          // gs invisible frame idx
     // A special id used to mark attributes that are not assigned to any known
     // predefined use case. Such attributes are often used for a shader specific
     // data.
