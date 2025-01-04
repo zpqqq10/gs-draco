@@ -1,10 +1,9 @@
-# 定义最终生成的可执行文件名（.js 或 .html 文件）
 TARGET = drc2ply.js
 
-# 定义 Emscripten 编译器和链接器
+# define Emscripten compiler
 EMCC = emcc
 
-# 定义编译选项，包括警告选项、头文件搜索路径和其他 Emscripten 特定选项
+# compile flags
 # CFLAGS = -s WASM=1 -s MODULARIZE=1 -s 'EXPORT_NAME="drc2plyModule"' -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 CFLAGS = -s WASM=1 -s MODULARIZE=1 -s 'EXPORT_NAME="drc2plyModule"' -s EXPORTED_FUNCTIONS='["_main", "_drc2ply", "_test", "_malloc", "_free", "getValue"]' -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 INCLUDE_DIRS = \
@@ -12,7 +11,7 @@ INCLUDE_DIRS = \
 ../build
 # ../third_party/googletest/googletest/include
 
-# 源文件目录列表
+# source files
 SRCDIRS = \
 ./wasm_decoder.cc ./draco/compression ./draco/io ./darco/core \
 ./draco/compression/point_cloud ./draco/compression/mesh ./draco/compression/attributes ./draco/compression/point_cloud/algorithms ./draco/compression/bit_coders ./draco/compression/entropy \
