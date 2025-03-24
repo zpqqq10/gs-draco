@@ -2,200 +2,12 @@
 <img width="350px" src="docs/artwork/draco3d-vert.svg" />
 </p>
 
-[![draco-ci](https://github.com/google/draco/workflows/draco-ci/badge.svg?branch=main)](https://github.com/google/draco/actions/workflows/ci.yml)
-
-News
-=======
-
-Attention GStatic users: the Draco team strongly recommends using the versioned
-URLs for accessing Draco GStatic content. If you are using the URLs that include
-the `v1/decoders` substring within the URL, edge caching and GStatic propagation
-delays can result in transient errors that can be difficult to diagnose when
-new Draco releases are launched. To avoid the issue pin your sites to a
-versioned release.
-
-### Version 1.5.7 release:
-* Using the versioned www.gstatic.com WASM and Javascript decoders continues
-  to be recommended. To use v1.5.7, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.5.7/*
-* Added support for normalized attributes to Emscripten encoder API.
-* Bug fixes.
-* Security fixes.
-
-### Version 1.5.6 release:
-* Using the versioned www.gstatic.com WASM and Javascript decoders continues
-  to be recommended. To use v1.5.6, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.5.6/*
-* The CMake flag DRACO_DEBUG_MSVC_WARNINGS has been replaced with
-  DRACO_DEBUG_COMPILER_WARNINGS, and the behavior has changed. It is now a
-  boolean flag defined in draco_options.cmake.
-* Bug fixes.
-* Security fixes.
-
-### Version 1.5.5 release:
-* Using the versioned www.gstatic.com WASM and Javascript decoders continues
-  to be recommended. To use v1.5.5, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.5.5/*
-* Bug fix: https://github.com/google/draco/issues/935
-
-### Version 1.5.4 release:
-* Using the versioned www.gstatic.com WASM and Javascript decoders continues
-  to be recommended. To use v1.5.4, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.5.4/*
-* Added partial support for glTF extensions EXT_mesh_features and
-  EXT_structural_metadata.
-* Bug fixes.
-* Security fixes.
-
-### Version 1.5.3 release:
-* Using the versioned www.gstatic.com WASM and Javascript decoders continues
-  to be recommended. To use v1.5.3, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.5.3/*
-* Bug fixes.
-
-### Version 1.5.2 release
-* This is the same as v1.5.1 with the following two bug fixes:
-  * Fixes DRACO_TRANSCODER_SUPPORTED enabled builds.
-  * ABI version updated.
-
-### Version 1.5.1 release
-* Adds assertion enabled Emscripten builds to the release, and a subset of the
-  assertion enabled builds to GStatic. See the file listing below.
-* Custom paths to third party dependencies are now supported. See BUILDING.md
-  for more information.
-* The CMake configuration file draco-config.cmake is now tested and known to
-  work for using Draco in Linux, MacOS, and Windows CMake projects. See the
-  `install_test` subdirectory of `src/draco/tools` for more information.
-* Bug fixes.
-
-### Version 1.5.0 release
-* Adds the draco_transcoder tool. See the section below on the glTF transcoding
-  tool, and BUILDING.md for build and dependency information.
-* Some changes to configuration variables have been made for this release:
-  - The DRACO_GLTF flag has been renamed to DRACO_GLTF_BITSTREAM to help
-    increase understanding of its purpose, which is to limit Draco features to
-    those included in the Draco glTF specification.
-  - Variables exported in CMake via draco-config.cmake and find-draco.cmake
-    (formerly FindDraco.cmake) have been renamed. It's unlikely that this
-    impacts any existing projects as the aforementioned files were not formed
-    correctly. See [PR775](https://github.com/google/draco/pull/775) for full
-    details of the changes.
-* A CMake version file has been added.
-* The CMake install target now uses absolute paths direct from CMake instead
-  of building them using CMAKE_INSTALL_PREFIX. This was done to make Draco
-  easier to use for downstream packagers and should have little to no impact on
-  users picking up Draco from source.
-* Certain MSVC warnings have had their levels changed via compiler flag to
-  reduce the amount of noise output by the MSVC compilers. Set MSVC warning
-  level to 4, or define DRACO_DEBUG_MSVC_WARNINGS at CMake configuration time
-  to restore previous behavior.
-* Bug fixes.
-
-### Version 1.4.3 release
-* Using the versioned www.gstatic.com WASM and Javascript decoders continues
-  to be recommended. To use v1.4.3, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.4.3/*
-* Bug fixes
-
-### Version 1.4.1 release
-* Using the versioned www.gstatic.com WASM and Javascript decoders is now
-  recommended. To use v1.4.1, use this URL:
-  * https://www.gstatic.com/draco/versioned/decoders/1.4.1/*
-    * Replace the * with the files to load. E.g.
-    * https://www.gstatic.com/draco/versioned/decoders/1.4.1/draco_decoder.js
-  * This works with the v1.3.6 and v1.4.0 releases, and will work with future
-    Draco releases.
-* Bug fixes
-
-### Version 1.4.0 release
-* WASM and JavaScript decoders are hosted from a static URL.
-  * It is recommended to always pull your Draco WASM and JavaScript decoders from this URL:
-  * https://www.gstatic.com/draco/v1/decoders/*
-    * Replace * with the files to load. E.g.
-    * https://www.gstatic.com/draco/v1/decoders/draco_decoder_gltf.wasm
-  * Users will benefit from having the Draco decoder in cache as more sites start using the static URL
-* Changed npm modules to use WASM, which increased performance by ~200%.
-* Updated Emscripten to 2.0.
-  * This causes the Draco codec modules to return a promise instead of the module directly.
-  * Please see the example code on how to handle the promise.
-* Changed NORMAL quantization default to 8.
-* Added new array API to decoder and deprecated DecoderBuffer.
-  * See PR https://github.com/google/draco/issues/513 for more information.
-* Changed WASM/JavaScript behavior of catching exceptions.
-  * See issue https://github.com/google/draco/issues/629 for more information.
-* Code cleanup.
-* Emscripten builds now disable NODEJS_CATCH_EXIT and NODEJS_CATCH_REJECTION.
-  * Authors of a CLI tool might want to add their own error handlers.
-* Added Maya plugin builds.
-* Unity plugin builds updated.
-  * Builds are now stored as archives.
-  * Added iOS build.
-  * Unity users may want to look into https://github.com/atteneder/DracoUnity.
-* Bug fixes.
-
-### Version 1.3.6 release
-* WASM and JavaScript decoders are now hosted from a static URL
-  * It is recommended to always pull your Draco WASM and JavaScript decoders from this URL:
-  * https://www.gstatic.com/draco/v1/decoders/*
-    * Replace * with the files to load. E.g.
-    * https://www.gstatic.com/draco/v1/decoders/draco_decoder_gltf.wasm
-  * Users will benefit from having the Draco decoder in cache as more sites start using the static URL
-* Changed web examples to pull Draco decoders from static URL
-* Added new API to Draco WASM decoder, which increased performance by ~15%
-* Decreased Draco WASM decoder size by ~20%
-* Added support for generic and multiple attributes to Draco Unity plug-ins
-* Added new API to Draco Unity, which increased decoder performance by ~15%
-* Changed quantization defaults:
-  * POSITION: 11
-  * NORMAL: 7
-  * TEX_COORD: 10
-  * COLOR: 8
-  * GENERIC: 8
-* Code cleanup
-* Bug fixes
-
-### Version 1.3.5 release
-* Added option to build Draco for Universal Scene Description
-* Code cleanup
-* Bug fixes
-
-### Version 1.3.4 release
-* Released Draco Animation code
-* Fixes for Unity
-* Various file location and name changes
-
-### Version 1.3.3 release
-* Added ExpertEncoder to the Javascript API
-  * Allows developers to set quantization options per attribute id
-* Bug fixes
-
-### Version 1.3.2 release
-* Bug fixes
-
-### Version 1.3.1 release
-* Fix issue with multiple attributes when skipping an attribute transform
-
-### Version 1.3.0 release
-* Improved kD-tree based point cloud encoding
-  * Now applicable to point clouds with any number of attributes
-  * Support for all integer attribute types and quantized floating point types
-* Improved mesh compression up to 10% (on average ~2%)
-  * For meshes, the 1.3.0 bitstream is fully compatible with 1.2.x decoders
-* Improved Javascript API
-  * Added support for all signed and unsigned integer types
-  * Added support for point clouds to our Javascript encoder API
-* Added support for integer properties to the PLY decoder
-* Bug fixes
-
-### Previous releases
-https://github.com/google/draco/releases
-
 Description
 ===========
 
 Draco is a library for compressing and decompressing 3D geometric [meshes] and
 [point clouds]. It is intended to improve the storage and transmission of 3D
-graphics.
+graphics. This repo is built upon Draco 1.5.7 and support compressing all gaussian attributes.
 
 Draco was designed and built for compression efficiency and speed. The code
 supports compressing points, connectivity information, texture coordinates,
@@ -209,35 +21,33 @@ rendered quickly.
 Draco is released as C++ source code that can be used to compress 3D graphics
 as well as C++ and Javascript decoders for the encoded data.
 
-
 _**Contents**_
 
-  * [Building](#building)
-  * [Usage](#usage)
-    * [Unity](#unity)
-    * [WASM and JavaScript Decoders](#WASM-and-JavaScript-Decoders)
-    * [Command Line Applications](#command-line-applications)
-    * [Encoding Tool](#encoding-tool)
-    * [Encoding Point Clouds](#encoding-point-clouds)
-    * [Decoding Tool](#decoding-tool)
-    * [glTF Transcoding Tool](#gltf-transcoding-tool)
-    * [C++ Decoder API](#c-decoder-api)
-    * [Javascript Encoder API](#javascript-encoder-api)
-    * [Javascript Decoder API](#javascript-decoder-api)
-    * [Javascript Decoder Performance](#javascript-decoder-performance)
-    * [Metadata API](#metadata-api)
-    * [NPM Package](#npm-package)
-    * [three.js Renderer Example](#threejs-renderer-example)
-  * [GStatic Javascript Builds](#gstatic-javascript-builds)
-  * [Support](#support)
-  * [License](#license)
-  * [References](#references)
-
+- [Description](#description)
+- [Building](#building)
+- [Usage](#usage)
+  - [Unity](#unity)
+  - [WASM and JavaScript Decoders](#wasm-and-javascript-decoders)
+  - [Command Line Applications](#command-line-applications)
+  - [Encoding Tool](#encoding-tool)
+  - [Encoding Point Clouds](#encoding-point-clouds)
+  - [Decoding Tool](#decoding-tool)
+  - [glTF Transcoding Tool](#gltf-transcoding-tool)
+  - [C++ Decoder API](#c-decoder-api)
+  - [Javascript Encoder API](#javascript-encoder-api)
+  - [Javascript Decoder API](#javascript-decoder-api)
+  - [Javascript Decoder Performance](#javascript-decoder-performance)
+  - [Metadata API](#metadata-api)
+  - [NPM Package](#npm-package)
+  - [three.js Renderer Example](#threejs-renderer-example)
+- [GStatic Javascript Builds](#gstatic-javascript-builds)
+- [Support](#support)
+- [License](#license)
+- [References](#references)
 
 Building
 ========
 See [BUILDING](BUILDING.md) for building instructions.
-
 
 Usage
 ======
