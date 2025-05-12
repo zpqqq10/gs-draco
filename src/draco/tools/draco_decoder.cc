@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
     printf("Invalid output file extension. Use .obj .ply or .stl.\n");
     return -1;
   }
-  printf("Decoded geometry saved to %s (%" PRId64 " ms to decode)\n",
-         options.output.c_str(), timer.GetInMs());
+  // printf("Decoded geometry saved to %s (%" PRId64 " ms to decode)\n",
+  //        options.output.c_str(), timer.GetInMs());
   return 0;
 }

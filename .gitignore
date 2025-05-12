@@ -7,3 +7,7 @@ build
 
 drc2ply.js
 drc2ply.wasm
+
+__pycache__
+*.egg-info
+*.so
