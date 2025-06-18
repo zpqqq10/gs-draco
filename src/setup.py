@@ -16,7 +16,7 @@ class BuildExt(build_ext):
         super().build_extensions()
 
 # include_dirs = [pybind11.get_include(), "draco"] + [i for i in glob("draco/**/*", recursive=True) if os.path.isdir(i)]
-include_dirs = [pybind11.get_include(), os.path.join(os.getcwd(), "draco")]
+include_dirs = [pybind11.get_include(), os.getcwd(), os.path.join(os.getcwd(), "draco"), build_dir]
 print(include_dirs)
 
 ext_modules = [
